@@ -289,6 +289,16 @@ export const generateConfig = async (originalProfile: App.Profile) => {
   }
 
   // step 1
+  // An empty GUI field means "use the core default", not an empty download URL.
+  config['geox-url'] = Object.fromEntries(
+    Object.entries(config['geox-url'] || {}).filter(
+      ([, url]) => typeof url !== 'string' || url.trim() !== '',
+    ),
+  )
+  if (Object.keys(config['geox-url']).length === 0) {
+    delete config['geox-url']
+  }
+
   if (!config.dns.listen) {
     delete config.dns.listen
   }

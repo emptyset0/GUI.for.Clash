@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { existsSync, readFileSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { registerHooks } from 'node:module'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
 import ts from 'typescript'
@@ -116,4 +119,52 @@ test('older profiles still emit managed subscriptions and explicit native provid
   })
   const imported = { managed: { type: 'http', url: 'https://example.com/native', interval: 600 } }
   assert.deepEqual(await generateProxyProviders(groups, imported), imported)
+})
+
+test('empty GUI GEO URLs do not override core defaults, including existing profiles', async () => {
+  const profile = restoreProfile(structuredClone(source), 'imported', { 'Direct-V4': '0' }, { '0': 'Direct-V4' })
+  const original = structuredClone(profile.advancedConfig['geox-url'])
+  const generated = await generateConfig(profile)
+  assert.equal(Object.hasOwn(generated, 'geox-url'), false)
+  assert.deepEqual(profile.advancedConfig['geox-url'], original)
+  profile.advancedConfig['geox-url'] = { geosite: '   ', geoip: '\t', mmdb: '', asn: '' }
+  assert.equal(Object.hasOwn(await generateConfig(profile), 'geox-url'), false)
+})
+
+test('partial custom GEO URLs are preserved while blank fields inherit core defaults', async () => {
+  const config = structuredClone(source)
+  config['geox-url'] = { geosite: 'https://example.com/custom-geosite.dat', asn: 'https://example.com/asn.mmdb' }
+  const profile = restoreProfile(config, 'imported', { 'Direct-V4': '0' }, { '0': 'Direct-V4' })
+  assert.deepEqual((await generateConfig(profile))['geox-url'], config['geox-url'])
+})
+
+test('explicit user GEO URLs in a mixin are still honored', async () => {
+  const profile = restoreProfile(structuredClone(source), 'imported', { 'Direct-V4': '0' }, { '0': 'Direct-V4' })
+  profile.mixinConfig.config = 'geox-url:\n  geosite: https://example.com/mixin-geosite.dat'
+  assert.deepEqual((await generateConfig(profile))['geox-url'], { geosite: 'https://example.com/mixin-geosite.dat' })
+})
+
+test('Mihomo validates generated GEOSITE/GEOIP rules using its default download URLs', {
+  skip: !process.env.MIHOMO_TEST_BINARY,
+}, async () => {
+  const config = structuredClone(source)
+  // Keep the same provider graph without making requests to real subscriptions.
+  for (const name of Object.keys(config['proxy-providers'])) {
+    config['proxy-providers'][name] = { type: 'inline', payload: [{ name: `Direct-${name}`, type: 'direct' }] }
+  }
+  config.rules = ['GEOSITE,private,DIRECT', 'GEOIP,private,DIRECT', 'MATCH,Proxy']
+  const profile = restoreProfile(config, 'imported', { 'Direct-V4': '0' }, { '0': 'Direct-V4' })
+  const generated = await generateConfig(profile)
+  assert.equal(Object.hasOwn(generated, 'geox-url'), false)
+  const directory = mkdtempSync(join(tmpdir(), 'mihomo-config-test-'))
+  try {
+    const path = join(directory, 'config.yaml')
+    writeFileSync(path, stringify(generated))
+    execFileSync(process.env.MIHOMO_TEST_BINARY!, ['-t', '-d', directory, '-f', path], {
+      timeout: 180_000,
+      stdio: 'pipe',
+    })
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
 })

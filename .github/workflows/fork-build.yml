@@ -23,6 +23,17 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
         working-directory: frontend
+      - name: Prepare Mihomo for native configuration validation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          url=$(gh api repos/MetaCubeX/mihomo/releases/latest --jq '.assets[] | select(.name | startswith("mihomo-linux-amd64-v")) | .browser_download_url' | head -n 1)
+          test -n "$url"
+          curl --fail --location --retry 3 "$url" --output "$RUNNER_TEMP/mihomo.gz"
+          gzip -dc "$RUNNER_TEMP/mihomo.gz" > "$RUNNER_TEMP/mihomo"
+          chmod +x "$RUNNER_TEMP/mihomo"
+          "$RUNNER_TEMP/mihomo" -v
+          echo "MIHOMO_TEST_BINARY=$RUNNER_TEMP/mihomo" >> "$GITHUB_ENV"
       - run: pnpm test
         working-directory: frontend
       - run: pnpm build
