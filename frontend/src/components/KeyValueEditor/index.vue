@@ -4,11 +4,13 @@ import { ref, watch } from 'vue'
 interface Props {
   modelValue?: Recordable
   placeholder?: [string, string]
+  valueLists?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: () => ({}),
   placeholder: () => ['key', 'value'],
+  valueLists: false,
 })
 
 const emit = defineEmits(['change', 'update:modelValue'])
@@ -21,7 +23,7 @@ const handleDel = (i: number) => {
 }
 
 const handleAdd = () => {
-  entries.value.push(['', ''])
+  entries.value.push(['', props.valueLists ? [] : ''])
   emitUpdate()
 }
 
@@ -65,7 +67,15 @@ const emitUpdate = () => {
         type="text"
         @click="handleDel(i)"
       />
+      <InputList
+        v-if="valueLists"
+        v-model="entry[1]"
+        :placeholder="placeholder[1]"
+        class="flex-1"
+        @change="emitUpdate"
+      />
       <Input
+        v-else
         v-model="entry[1]"
         :placeholder="placeholder[1]"
         auto-size

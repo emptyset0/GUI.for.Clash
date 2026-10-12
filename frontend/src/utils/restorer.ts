@@ -12,6 +12,7 @@ import {
 } from '@/constant/profile'
 import { RulesetBehavior, RulesetFormat, RuleType } from '@/enums/kernel'
 import { deepAssign, sampleID } from '@/utils'
+import { normalizeNameserverPolicy } from '@/utils/nameserverPolicy'
 
 export const restoreProfile = (
   config: Record<string, any>,
@@ -116,6 +117,9 @@ export const restoreProfile = (
       ;(profile.advancedConfig as any)[field] = value
     } else if (field === 'dns') {
       profile.dnsConfig = deepAssign(profile.dnsConfig, value)
+      profile.dnsConfig['nameserver-policy'] = normalizeNameserverPolicy(
+        profile.dnsConfig['nameserver-policy'],
+      )
     } else if (field === 'tun') {
       profile.tunConfig = deepAssign(profile.tunConfig, value)
     } else if (field === 'hosts') {

@@ -391,7 +391,7 @@ declare namespace App {
       fallback: string[]
       'proxy-server-nameserver': string[]
       'direct-nameserver': string[]
-      'nameserver-policy': Record<string, any>
+      'nameserver-policy': Record<string, string | string[]>
       'fallback-filter': {
         geoip: boolean
         'geoip-code': string

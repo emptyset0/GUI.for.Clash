@@ -1,0 +1,61 @@
+name: Fork Windows Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["codex/fix-nameserver-policy"]
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.1
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "26"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: frontend
+      - run: pnpm test
+        working-directory: frontend
+      - run: pnpm build
+        working-directory: frontend
+      - uses: actions/upload-artifact@v6
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          if-no-files-found: error
+
+  windows:
+    needs: frontend
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.15.0
+      - uses: actions/download-artifact@v8
+        with:
+          name: frontend-dist
+          path: frontend/dist
+      - name: Build and pack Windows amd64
+        shell: pwsh
+        run: |
+          $env:GOOS = "windows"
+          $env:GOARCH = "amd64"
+          wails build -m -s -trimpath -skipbindings -devtools -o GUI.for.Clash.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Compress-Archive -Path build/bin/GUI.for.Clash.exe -DestinationPath build/bin/GUI.for.Clash-windows-amd64.zip
+      - uses: actions/upload-artifact@v6
+        with:
+          name: GUI.for.Clash-windows-amd64
+          path: build/bin/GUI.for.Clash-windows-amd64.zip
+          if-no-files-found: error

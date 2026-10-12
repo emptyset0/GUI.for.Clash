@@ -5,6 +5,7 @@ import { BuiltInOutbound, CoreConfigFilePath } from '@/constant/kernel'
 import { ProxyGroup, RuleType } from '@/enums/kernel'
 import { useSubscribesStore, useRulesetsStore, usePluginsStore } from '@/stores'
 import { deepClone, APP_TITLE, deepAssign, stringifyNoFolding } from '@/utils'
+import { generateNameserverPolicy } from '@/utils/nameserverPolicy'
 
 export const generateRule = (
   rule: App.Profile['rulesConfig'][0],
@@ -313,10 +314,7 @@ export const generateConfig = async (originalProfile: App.Profile) => {
     delete config.dns['proxy-server-nameserver']
   }
 
-  Object.entries(config.dns['nameserver-policy']).forEach(([key, value]: any) => {
-    const _value = value.split(',')
-    config.dns['nameserver-policy'][key] = _value.length === 1 ? _value[0] : _value
-  })
+  config.dns['nameserver-policy'] = generateNameserverPolicy(config.dns['nameserver-policy'])
 
   config['proxy-providers'] = await generateProxyProviders(profile.proxyGroupsConfig)
 

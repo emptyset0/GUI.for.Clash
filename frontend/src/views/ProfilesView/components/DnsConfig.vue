@@ -1,11 +1,19 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { EnhancedModeOptions, FakeipFilterMode } from '@/constant/kernel'
 import { DnsConfigDefaults } from '@/constant/profile'
 import { useBool } from '@/hooks'
+import { normalizeNameserverPolicy } from '@/utils/nameserverPolicy'
 
 const fields = defineModel<App.Profile['dnsConfig']>({ default: DnsConfigDefaults })
+const nameserverPolicy = computed({
+  get: () => normalizeNameserverPolicy(fields.value['nameserver-policy']),
+  set: (value: Record<string, string[]>) => {
+    fields.value['nameserver-policy'] = value
+  },
+})
 
 const { t } = useI18n()
 const [showMore, toggleMore] = useBool(false)
@@ -96,8 +104,9 @@ const [showMore, toggleMore] = useBool(false)
       >
         {{ t('kernel.dns.nameserver-policy') }}
         <KeyValueEditor
-          v-model="fields['nameserver-policy']"
-          :placeholder="['google.com', '8.8.8.8,114.114.114.114']"
+          v-model="nameserverPolicy"
+          :placeholder="['google.com', '8.8.8.8']"
+          value-lists
         />
       </div>
 
