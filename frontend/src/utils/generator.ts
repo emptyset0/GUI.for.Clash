@@ -138,6 +138,9 @@ export const generateProxyGroup = (
   } = proxyGruoup
 
   const group: any = { name, type, filter, 'exclude-filter': ExcludeFilter, hidden, icon }
+  if (proxyGruoup.override) {
+    group.override = deepClone(proxyGruoup.override)
+  }
 
   if (use.length !== 0) {
     group.use = use
@@ -188,8 +191,11 @@ export const generateProxyGroup = (
   return group
 }
 
-export const generateProxyProviders = async (groups: App.Profile['proxyGroupsConfig']) => {
-  const providers: Record<string, any> = {}
+export const generateProxyProviders = async (
+  groups: App.Profile['proxyGroupsConfig'],
+  imported: NonNullable<App.Profile['proxyProvidersConfig']> = {},
+) => {
+  const providers: Record<string, any> = deepClone(imported)
   const subs = new Set<string>()
   groups.forEach((group) => {
     group.use.forEach((use) => subs.add(use))
@@ -197,7 +203,7 @@ export const generateProxyProviders = async (groups: App.Profile['proxyGroupsCon
   const subscribesStore = useSubscribesStore()
   subs.forEach((id) => {
     const sub = subscribesStore.getSubscribeById(id)
-    if (sub) {
+    if (sub && !Object.hasOwn(providers, sub.id)) {
       providers[sub.id] = {
         type: 'file',
         path: sub.path.replace('data/', '../'),
@@ -316,7 +322,10 @@ export const generateConfig = async (originalProfile: App.Profile) => {
 
   config.dns['nameserver-policy'] = generateNameserverPolicy(config.dns['nameserver-policy'])
 
-  config['proxy-providers'] = await generateProxyProviders(profile.proxyGroupsConfig)
+  config['proxy-providers'] = await generateProxyProviders(
+    profile.proxyGroupsConfig,
+    profile.proxyProvidersConfig,
+  )
 
   config['rule-providers'] = await generateRuleProviders(
     profile.dnsConfig,

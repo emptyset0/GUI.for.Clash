@@ -11,7 +11,7 @@ import {
   SnifferDefaults,
 } from '@/constant/profile'
 import { RulesetBehavior, RulesetFormat, RuleType } from '@/enums/kernel'
-import { deepAssign, sampleID } from '@/utils'
+import { deepAssign, deepClone, sampleID } from '@/utils'
 import { normalizeNameserverPolicy } from '@/utils/nameserverPolicy'
 
 export const restoreProfile = (
@@ -33,6 +33,7 @@ export const restoreProfile = (
     tunConfig: TunConfigDefaults(),
     sniffer: SnifferDefaults(),
     proxyGroupsConfig: [],
+    proxyProvidersConfig: deepClone(config['proxy-providers'] || {}),
     rulesConfig: [
       {
         id: RuleType.InsertionPoint,
@@ -87,9 +88,8 @@ export const restoreProfile = (
       url: group.url ?? 'https://www.gstatic.com/generate_204',
       interval: group.interval ?? 300,
       strategy: group.strategy ?? 'consistent-hashing',
-      use: (group.use || []).map((use: string) => {
-        return GroupNameIdMap[use] || use
-      }),
+      // `use` references provider names, not proxy-group IDs.
+      use: [...(group.use || [])],
       tolerance: group.tolerance ?? 150,
       lazy: group.lazy ?? true,
       'disable-udp': group['disable-udp'] ?? false,
@@ -97,6 +97,7 @@ export const restoreProfile = (
       'exclude-filter': group['exclude-filter'] ?? '',
       hidden: group.hidden ?? false,
       icon: group.icon ?? '',
+      ...(group.override ? { override: deepClone(group.override) } : {}),
     }
 
     profile.proxyGroupsConfig.push(_group)

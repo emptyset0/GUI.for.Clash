@@ -13,6 +13,10 @@ import ProxyGroupSort from './ProxyGroupSort.vue'
 
 type GroupsType = App.Profile['proxyGroupsConfig']
 
+const props = withDefaults(defineProps<{ proxyProviders?: App.Profile['proxyProvidersConfig'] }>(), {
+  proxyProviders: () => ({}),
+})
+
 const groups = defineModel<GroupsType>({ default: () => [] })
 
 const { t } = useI18n()
@@ -59,7 +63,9 @@ const handleClearGroup = async (g: GroupsType[0]) => {
     return sub.proxies.some((v) => v.id === id)
   })
 
-  g.use = g.use.filter((v) => subscribesStore.subscribes.some(({ id }) => id === v))
+  g.use = g.use.filter(
+    (v) => Object.hasOwn(props.proxyProviders, v) || subscribesStore.subscribes.some(({ id }) => id === v),
+  )
 }
 
 const openGroupModal = (group: GroupsType[number], index: number) => {
@@ -82,7 +88,11 @@ const openGroupModal = (group: GroupsType[number], index: number) => {
       })
     },
   })
-  m.setContent(ProxyGroupForm, { group: draft.value, groups: groups.value }).open()
+  m.setContent(ProxyGroupForm, {
+    group: draft.value,
+    groups: groups.value,
+    proxyProviders: props.proxyProviders,
+  }).open()
 }
 
 const handleEditGroup = (index: number) => openGroupModal(groups.value[index]!, index)
@@ -102,7 +112,7 @@ const hasLost = (g: GroupsType[0]) => {
   })
 
   const isUseLost = g.use.some((v) => {
-    return subscribesStore.subscribes.every(({ id }) => id !== v)
+    return !Object.hasOwn(props.proxyProviders, v) && subscribesStore.subscribes.every(({ id }) => id !== v)
   })
 
   return isProxiesLost || isUseLost

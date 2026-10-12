@@ -401,6 +401,8 @@ declare namespace App {
       }
       hosts: Record<string, string>
     }
+    // Native Mihomo providers are independent of GUI-managed subscriptions.
+    proxyProvidersConfig?: Record<string, Record<string, any>>
     proxyGroupsConfig: {
       id: string
       name: string
@@ -421,6 +423,7 @@ declare namespace App {
       'exclude-filter': string
       hidden: boolean
       icon: string
+      override?: Record<string, any>
     }[]
     rulesConfig: {
       id: string

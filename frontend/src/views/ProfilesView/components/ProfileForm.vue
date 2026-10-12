@@ -248,7 +248,11 @@ defineExpose({ modalSlots })
     </div>
 
     <div v-if="currentStep === Step.Group">
-      <ProxyGroupsConfig ref="groupsRef" v-model="profile.proxyGroupsConfig" />
+      <ProxyGroupsConfig
+        ref="groupsRef"
+        v-model="profile.proxyGroupsConfig"
+        :proxy-providers="profile.proxyProvidersConfig"
+      />
     </div>
 
     <div v-if="currentStep === Step.Rules">

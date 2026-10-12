@@ -11,6 +11,7 @@ type GroupsType = App.Profile['proxyGroupsConfig']
 interface Props {
   group: GroupsType[number]
   groups: GroupsType
+  proxyProviders?: App.Profile['proxyProvidersConfig']
 }
 
 const props = defineProps<Props>()
@@ -32,7 +33,12 @@ const proxyGroups = [
   {
     id: 'Subscribes',
     name: 'kernel.proxyGroups.subscriptions',
-    proxies: subscribesStore.subscribes.map(({ id, name }) => ({ id, name, type: 'use' })),
+    proxies: [
+      ...Object.keys(props.proxyProviders || {}).map((name) => ({ id: name, name, type: 'use' })),
+      ...subscribesStore.subscribes
+        .filter(({ id }) => !Object.hasOwn(props.proxyProviders || {}, id))
+        .map(({ id, name }) => ({ id, name, type: 'use' })),
+    ],
   },
   ...subscribesStore.subscribes.map(({ id, name, proxies }) => ({ id, name, proxies })),
 ]

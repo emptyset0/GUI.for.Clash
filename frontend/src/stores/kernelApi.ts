@@ -40,6 +40,7 @@ import {
 } from '@/utils'
 
 import type { CoreApiConfig, CoreApiProxy } from '@/types/kernel'
+import { waitForCoreStartup } from '@/utils/kernelStartup'
 
 export type ProxyType = 'mixed' | 'http' | 'socks'
 export type ProxyEndpoint = {
@@ -159,22 +160,14 @@ export const useKernelApiStore = defineStore('kernelApi', () => {
         Env: getKernelRuntimeEnv(isAlpha),
       },
     )
-    while (!stopped) {
-      const ok = await probeApiAvailability().catch(() => false)
-      if (ok) break
-      if (stopped) throw 'Startup failed. Check logs for details.'
-      await sleep(500)
-    }
-    const start = Date.now()
-    while (tunEnabled) {
-      const config = await getConfigs().catch(() => null)
-      if (config?.tun?.enable) break
-      if (Date.now() - start >= 5_000) {
-        message.warn('TUN mode startup timed out.')
-        break
-      }
-      await sleep(500)
-    }
+    await waitForCoreStartup({
+      isStopped: () => stopped,
+      probeApi: probeApiAvailability,
+      getTunEnabled: async () => !!(await getConfigs())?.tun?.enable,
+      tunEnabled,
+      sleep,
+      warnTunTimeout: () => message.warn('TUN mode startup timed out.'),
+    })
     return pid
   }
 
