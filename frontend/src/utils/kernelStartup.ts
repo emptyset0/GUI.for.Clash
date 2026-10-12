@@ -3,7 +3,7 @@ interface StartupOptions {
   probeApi: () => Promise<unknown>
   getTunEnabled: () => Promise<boolean>
   tunEnabled: boolean
-  sleep: (ms: number) => Promise<void>
+  sleep: (ms: number) => Promise<unknown>
   warnTunTimeout: () => void
   now?: () => number
 }

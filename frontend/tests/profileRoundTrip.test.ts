@@ -73,9 +73,8 @@ dns:
     '+.lan,+.local': [system]
     'geosite:private,cn': [https://example.com/dns-query#h3=true, tls://1.1.1.1]
 tun: {enable: true, stack: system, strict-route: true}
-rules: [MATCH,Proxy]
+rules: ['MATCH,Proxy']
 `)
-source.rules = ['MATCH,Proxy']
 subscriptions.imported = { id: 'imported', path: 'data/subscribes/imported.yaml' }
 files[subscriptions.imported.path] = stringify({ proxies: source.proxies })
 
